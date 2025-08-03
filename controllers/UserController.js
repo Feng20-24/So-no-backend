@@ -78,34 +78,7 @@ export class UserController {
         }
     }
 
-    static async createUserSignIn(req, res) {
-        try{
-            const email = req.body.email;
-            const password = req.body.password;
-            const phoneNumber = req.body.phoneNumber;
-            
-            const {salt, hashedPassword} = await User.hashPassword(password);
-            
-            const userId = await User.createUserWithHash({
-                email,
-                phoneNumber,
-                password: hashedPassword,
-                salt,
-                hashedPassword,
-                name: "You"
-            });
 
-            if (!userId) return res.status(404).json({
-                message: "User not found"
-            });
-            res.status(201).json({ id: userId });
-        } catch (error) {
-            res.status(500).json({
-                error: error.message,
-                message: "Error creating user"
-            });
-        }
-    }
 
     static async signUpUser(req, res) {
         try {
