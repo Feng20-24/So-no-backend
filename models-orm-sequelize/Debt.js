@@ -88,31 +88,6 @@ Debt.getDebtsByUserId = async (userId) => {
     });
 };
 
-Debt.getDebtsByUserIdAndRecurrence = async (userId, isRecurring) => {
-    const whereClause = {
-        userId,
-        recurringDay: isRecurring ? { [Op.gt]: 0 } : 0
-    };
-    
-    const debts = await Debt.findAll({
-        where: whereClause,
-        include: [{
-            model: Customer,
-            as: 'customer',
-            attributes: ['name']
-        }],
-        raw: false
-    });
-    
-    return debts.map(debt => {
-        const debtData = debt.toJSON();
-        if (debt.customer) {
-            debtData.customerName = debt.customer.name;
-        }
-        return debtData;
-    });
-};
-
 Debt.updateDebt = async (data) => {
     const updateData = { amount: data.amount };
     
@@ -145,13 +120,24 @@ Debt.updateAllDebtStatus = async (currentDate = new Date()) => {
                 { status: 'overdue' },
                 { where: { id: debt.id } }
             );
-            
-            if (debt.recurringDay !== 0) {
-                await Debt.update(
-                    { amount: debt.amount + debt.originalAmount },
-                    { where: { id: debt.id } }
-                );
-            }
+        }
+    }
+
+    const allRecurringDebts = await Debt.findAll({
+        where:{
+            [Op.not] : {recurringDay: 0}
+        }
+    })
+
+    for (const debt of allRecurringDebts) {
+        if ( debt.date === currentDate) {
+            await Debt.update(
+                {
+                    amount: debt.amount + debt.originalAmount ,
+                    status: 'unpaid'
+                },
+                { where: { id: debt.id } }
+            )
         }
     }
 };
