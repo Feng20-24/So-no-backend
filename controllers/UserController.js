@@ -1,23 +1,8 @@
 import User from "../models-orm-sequelize/User.js";
 import {generateToken, authenticateUser} from "../middlewares/auth.js";
+import {AvatarService} from "../service/image.js";
 
 export class UserController {
-    static async getById(req, res) {
-        try {
-            const user = await User.findById(req.params.userId);
-
-            if (!user) return res.status(404).json({
-                message: "User not found"
-            });
-            res.status(200).json(user);
-        } catch (error) {
-            res.status(500).json({
-                error: error.message,
-                message: "Error getting user by ID"
-            });
-        }
-    }
-
     static async getCurrentUser(req, res) {
         try {
             // req.user comes from JWT verification middleware
@@ -51,7 +36,8 @@ export class UserController {
                     id: user.id,
                     name: user.name,
                     email: user.email,
-                    phoneNumber: user.phoneNumber
+                    phoneNumber: user.phoneNumber,
+                    avatarLink: user.avatarLink
                 },
                 token
             });
@@ -61,12 +47,11 @@ export class UserController {
         }
     }
 
-    static async updatePersonalInfo(req, res) {
+        static async updatePersonalInfo(req, res) {
         try {
-            // Use authenticated user's ID instead of URL parameter for security
             const userId = req.user.id;
-            const { name, email, phoneNumber, avatarLink } = req.body;
-
+            const { name, email, phoneNumber, avatar } = req.body;
+            const avatarLink = await AvatarService(avatar);
             await User.updatePersonalInfo(userId, { name, email, phoneNumber, avatarLink });
             const updatedUser = await User.findByPk(userId);
             res.status(200).json(updatedUser);
@@ -117,7 +102,8 @@ export class UserController {
                     id: user.id,
                     name: user.name,
                     email: user.email,
-                    phoneNumber: user.phoneNumber
+                    phoneNumber: user.phoneNumber,
+                    avatarLink: user.avatarLink
                 },
                 token
             });

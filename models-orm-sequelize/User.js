@@ -24,6 +24,11 @@ const User = sequelize.define(
             allowNull: true,
             field: 'phone_number',
         },
+            avatarLink: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'avatar_link',
+        },
         password: {
             type: DataTypes.STRING,
             allowNull: true,
@@ -61,13 +66,15 @@ User.createUser = async (user) => {
 
 User.updatePersonalInfo = async (id, { name, email, phoneNumber, avatarLink }) => {
    return  await User.update(
-        { name, email, phoneNumber },
+        { name, email, phoneNumber , avatarLink },
         { where: { id } }
     );
 };
 
 User.findByEmail = async (email) => {
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({
+        where: { email }
+    });
     return user;
 };
 
@@ -75,6 +82,7 @@ User.createUserWithHash = async (userData) => {
     const user = await User.create({
         email: userData.email,
         phoneNumber: userData.phoneNumber,
+        avatarLink: userData.avatarLink,
         password: userData.password,
         salt: userData.salt,
         hashedPassword: userData.hashedPassword,
@@ -86,7 +94,7 @@ User.createUserWithHash = async (userData) => {
 
 User.getCurrentUser = async (id) => {
     const user = await User.findByPk(id, {
-        attributes: ['id', 'name', 'email', 'phoneNumber']
+        attributes: ['id', 'name', 'email', 'phoneNumber', 'avatarLink'],
     });
     
     if (!user) return null;
@@ -95,24 +103,27 @@ User.getCurrentUser = async (id) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        phoneNumber: user.phoneNumber
+        phoneNumber: user.phoneNumber,
+        avatarLink: user.avatarLink,
     };
 };
 
 User.authenticateUser = async (identifier, password) => {
     try {
-        // Try to find user by email first, then by phone
-        let user = await User.findOne({ where: { email: identifier } });
+        let user = await User.findOne({
+            where: { email: identifier }
+        });
         
         if (!user) {
-            user = await User.findOne({ where: { phoneNumber: identifier } });
+            user = await User.findOne({
+                where: { phoneNumber: identifier }
+            });
         }
 
         if (!user) {
             throw new Error("Incorrect email or password");
         }
 
-        // Check if user has salt and hashedPassword (new format)
         if (user.salt && user.hashedPassword) {
             return new Promise((resolve, reject) => {
                 crypto.pbkdf2(password, user.salt, 310000, 32, 'sha256', function(err, hashedPassword) {
@@ -127,15 +138,7 @@ User.authenticateUser = async (identifier, password) => {
                     resolve(user);
                 });
             });
-        } 
-        // Check if user has plain password (old format)
-        else if (user.password) {
-            if (user.password !== password) {
-                throw new Error('Incorrect email or password');
-            }
-            return user;
         }
-        // No password found
         else {
             throw new Error('Invalid user account');
         }
