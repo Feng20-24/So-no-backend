@@ -7,16 +7,10 @@ import crypto from 'crypto';
 async function initDatabase() {
     try {
         await connectDb();
-        
-        // Check if data already exists
-        const existingUsers = await User.count();
-        if (existingUsers > 0) {
-            console.log('Database already has data. Skipping initialization.');
-            return;
-        }
-        
-        // Only create tables if they don't exist (don't force recreate)
-        await sequelize.sync();
+
+        // Force create new database every time
+        const force = true;
+        await sequelize.sync({ force });
         console.log('Database & tables created!');
         
         const salt1 = crypto.randomBytes(16).toString('hex');
